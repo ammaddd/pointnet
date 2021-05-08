@@ -1,5 +1,4 @@
-from comet_ml import Experiment
-experiment = Experiment(auto_metric_logging=False)
+from comet_utils import CometLogger
 import argparse
 import subprocess
 import tensorflow as tf
@@ -22,8 +21,11 @@ parser.add_argument('--epoch', type=int, default=200, help='Epoch to run [defaul
 parser.add_argument('--point_num', type=int, default=2048, help='Point Number [256/512/1024/2048]')
 parser.add_argument('--output_dir', type=str, default='train_results', help='Directory that stores all training logs and trained models')
 parser.add_argument('--wd', type=float, default=0, help='Weight Decay [Default: 0.0]')
+parser.add_argument('--comet', default=False, type=bool, help='enable comet logging')
 FLAGS = parser.parse_args()
-experiment.log_others(vars(FLAGS))
+
+comet_logger = CometLogger(FLAGS.comet, auto_metric_logging=False)
+comet_logger.log_others(vars(FLAGS))
 
 hdf5_data_dir = os.path.join(BASE_DIR, './hdf5_data')
 
@@ -276,16 +278,16 @@ def train():
                 train_writer.add_summary(train_seg_acc_sum, i + epoch_num * num_train_file)
                 train_writer.add_summary(batch_sum, i + epoch_num * num_train_file)
 
-                experiment.log_metric("train_loss", total_loss,
-                                       step=global_step, epoch=epoch_num)
-                experiment.log_metric("train_total_label_loss", total_label_loss,
-                                       step=global_step, epoch=epoch_num)
-                experiment.log_metric("train_total_seg_loss", total_seg_loss,
-                                       step=global_step, epoch=epoch_num)
-                experiment.log_metric("train_total_label_acc", total_label_acc,
-                                       step=global_step, epoch=epoch_num)
-                experiment.log_metric("train_total_seg_acc", total_seg_acc,
-                                       step=global_step, epoch=epoch_num)
+                comet_logger.log_metric("train_loss", total_loss,
+                                        step=global_step, epoch=epoch_num)
+                comet_logger.log_metric("train_total_label_loss", total_label_loss,
+                                        step=global_step, epoch=epoch_num)
+                comet_logger.log_metric("train_total_seg_loss", total_seg_loss,
+                                        step=global_step, epoch=epoch_num)
+                comet_logger.log_metric("train_total_label_acc", total_label_acc,
+                                        step=global_step, epoch=epoch_num)
+                comet_logger.log_metric("train_total_seg_acc", total_seg_acc,
+                                        step=global_step, epoch=epoch_num)
 
                 printout(flog, '\tTraining Total Mean_loss: %f' % total_loss)
                 printout(flog, '\t\tTraining Label Mean_loss: %f' % total_label_loss)
@@ -371,16 +373,16 @@ def train():
             test_writer.add_summary(test_label_acc_sum, (epoch_num+1) * num_train_file-1)
             test_writer.add_summary(test_seg_acc_sum, (epoch_num+1) * num_train_file-1)
 
-            experiment.log_metric("test_loss", total_loss,
-                                   step=global_step, epoch=epoch_num)
-            experiment.log_metric("test_total_label_loss", total_label_loss,
-                                   step=global_step, epoch=epoch_num)
-            experiment.log_metric("test_seg_loss", total_seg_loss,
-                                   step=global_step, epoch=epoch_num)
-            experiment.log_metric("test_label_acc", total_label_acc,
-                                   step=global_step, epoch=epoch_num)
-            experiment.log_metric("test_seg_acc", total_seg_acc,
-                                   step=global_step, epoch=epoch_num)
+            comet_logger.log_metric("test_loss", total_loss,
+                                    step=global_step, epoch=epoch_num)
+            comet_logger.log_metric("test_total_label_loss", total_label_loss,
+                                    step=global_step, epoch=epoch_num)
+            comet_logger.log_metric("test_seg_loss", total_seg_loss,
+                                    step=global_step, epoch=epoch_num)
+            comet_logger.log_metric("test_label_acc", total_label_acc,
+                                    step=global_step, epoch=epoch_num)
+            comet_logger.log_metric("test_seg_acc", total_seg_acc,
+                                    step=global_step, epoch=epoch_num)
 
             printout(flog, '\tTesting Total Mean_loss: %f' % total_loss)
             printout(flog, '\t\tTesting Label Mean_loss: %f' % total_label_loss)
@@ -410,7 +412,7 @@ def train():
 
             if (epoch+1) % 10 == 0:
                 cp_filename = saver.save(sess, os.path.join(MODEL_STORAGE_PATH, 'epoch_' + str(epoch+1)+'.ckpt'))
-                experiment.log_model("pointnet", os.path.join(MODEL_STORAGE_PATH, 'epoch_' + str(epoch+1)+'.ckpt'))
+                comet_logger.log_model("pointnet", os.path.join(MODEL_STORAGE_PATH, 'epoch_' + str(epoch+1)+'.ckpt'))
                 printout(flog, 'Successfully store the checkpoint model into ' + cp_filename)
 
             flog.flush()
